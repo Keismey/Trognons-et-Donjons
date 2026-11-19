@@ -2,7 +2,7 @@
 
 Un rogue-zelda-like mignon pour mobile, de Keismey Studio : descends dans les profondeurs, sauve des créatures (les trognons) et fais-les grandir au refuge. Elles t'aideront à descendre plus loin.
 
-**État : prototype du donjon** (formes provisoires, pas encore d'images ni de musique).
+**État : prototype du donjon**, avec sa direction artistique : tout est dessiné par le code en vectoriel (aucune image), pas encore de musique.
 
 ## Jouer au prototype
 
@@ -21,3 +21,10 @@ Ouvrir `index.html` dans un navigateur, ou la page GitHub Pages du dépôt une f
 - Sons fabriqués par le jeu (WebAudio). Sauvegarde dans le navigateur (`localStorage`, clé `trognons-et-donjons-proto`).
 
 Le concept complet est dans le document de conception du projet.
+
+## Fichiers
+
+- `index.html` — la page du jeu et les styles des écrans
+- `js/art.js` — tout le dessin : décors pré-rendus par salle, héros, Braisou, monstres, butin, interface
+- `js/game.js` — la logique : génération des étages, combats, sauvetage, butin, écrans
+- `fonts/` — Fredoka (licence SIL OFL, voir `fonts/OFL-fredoka.txt`)
