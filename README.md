@@ -13,6 +13,10 @@ Ouvrir `index.html` dans un navigateur, ou la page GitHub Pages du dépôt une f
 
 ## Ce que contient le prototype
 
+**Le refuge** : une clairière avec la cabane, la couveuse (2 nids), le tableau des expéditions, l'enclos où les trognons se promènent et l'entrée du donjon. On fait éclore les œufs, on nourrit les trognons avec des fibres (bébé, jeune, adulte), on envoie jusqu'à 2 trognons en expédition. Les minuteries avancent même jeu fermé.
+
+**Le donjon** :
+
 - Un biome (les Racines), des étages de 7 à 10 salles générés à chaque partie, portes qui s'ouvrent quand la salle est vidée.
 - 3 ennemis : le Glouton (bondit), l'Épineux (tire des graines), le Bourdon (prévient puis fonce).
 - Les créatures à aura dorée ne meurent pas : elles sont assommées et on peut les sauver.
@@ -26,5 +30,6 @@ Le concept complet est dans le document de conception du projet.
 
 - `index.html` — la page du jeu et les styles des écrans
 - `js/art.js` — tout le dessin : décors pré-rendus par salle, héros, Braisou, monstres, butin, interface
+- `js/refuge.js` — le refuge : couveuse, trognons qui grandissent, expéditions (durées de test : œuf 3 min, expédition 5 min)
 - `js/game.js` — la logique : génération des étages, combats, sauvetage, butin, écrans
 - `fonts/` — Fredoka (licence SIL OFL, voir `fonts/OFL-fredoka.txt`)

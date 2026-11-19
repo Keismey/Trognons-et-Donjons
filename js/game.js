@@ -69,7 +69,9 @@ const joy={id:null,bx:0,by:0,x:0,y:0};
 const pressed={};const btnDown={atk:0,roll:0,pow:0};
 function toLogical(e){return{x:(e.clientX-offX)/scale,y:(e.clientY-offY)/scale}}
 cv.addEventListener('pointerdown',e=>{
-  audio();const p=toLogical(e);try{cv.setPointerCapture(e.pointerId)}catch(_){}
+  audio();const p=toLogical(e);
+  if(state==='refuge'){refugeTap(p);return}
+  try{cv.setPointerCapture(e.pointerId)}catch(_){}
   for(const k in BTN){const b=BTN[k];if(len(p.x-b.x,p.y-b.y)<b.r+14){input[k]=true;pressed[e.pointerId]=k;btnDown[k]=.12;return}}
   if(p.x<180&&p.y>OY){joy.id=e.pointerId;joy.bx=p.x;joy.by=Math.max(p.y,CTRL_Y+50);joy.x=p.x;joy.y=p.y}
 });
@@ -233,6 +235,7 @@ function update(dt){
   for(const m of motes){m.ph+=dt;m.x+=m.vx*dt+Math.sin(m.ph)*4*dt;m.y+=m.vy*dt;if(m.y<20){m.y=330;m.x=rnd(30,320)}if(m.x<20)m.x=330;if(m.x>335)m.x=25}
   if(buddy){buddy.squash=Math.max(0,buddy.squash-dt*4)}
   if(hero){hero.blinkT-=dt;if(hero.blinkT<0){hero.blink=true;if(hero.blinkT<-.12){hero.blink=false;hero.blinkT=rnd(2,4.5)}}}
+  if(state==='refuge'){updRefuge(dt);updParts(dt);return}
   if(state!=='play'){input.atk=input.roll=input.pow=false;updParts(dt);return}
   const h=hero;
   h.inv=Math.max(0,h.inv-dt);h.rollCd=Math.max(0,h.rollCd-dt);buddy.cd=Math.max(0,buddy.cd-dt);
@@ -384,7 +387,7 @@ function showOv(html,btns,cls=''){
   ov.classList.remove('hide');
 }
 function lootLine(r){return `<div class="loot"><span><i class="ic fibre"></i>${r.fibres}</span><span><i class="ic eclat"></i>${r.eclats}</span><span><i class="ic oeuf"></i>${r.oeufs}</span><span><i class="ic trognon"></i>${r.trognons.length}</span></div>`}
-function bank(){save.fibres+=run.fibres;save.eclats+=run.eclats;save.oeufs+=run.oeufs;save.trognons.push(...run.trognons);save.record=Math.max(save.record,floorN);writeSave()}
+function bank(){save.fibres+=run.fibres;save.eclats+=run.eclats;save.oeufs+=run.oeufs;save.trognons.push(...run.trognons.map(sp=>newTrognon(sp)));save.record=Math.max(save.record,floorN);writeSave()}
 function demoScene(){
   floorN=1;hero=newHero();hero.y=6.2*T;buddy=newBuddy();cur=genFloor();cur.seen=true;cur.cache=renderRoomCanvas(cur,COLS,ROWS,T);cur.enemies=[];cur.cleared=true;cur.openT=1;
   initMotes();run={fibres:0,eclats:0,oeufs:0,trognons:[]};
@@ -396,21 +399,22 @@ function showTitle(){
   <p>Descends dans les Racines, ramasse du butin et <b>sauve les créatures dorées</b> : assomme-les, puis appuie sur ♥ à côté d'elles.</p>
   <p class="small">Clavier : flèches ou ZQSD, J attaque, K roulade, L souffle de Braisou.</p>
   ${save.trognons.length+save.eclats>0?`<p class="small">Au refuge : ${save.eclats} éclats · ${save.oeufs} œufs · ${save.trognons.length} trognons</p>`:''}`,
-  [{l:'Descendre',f:()=>startRun(false)}],'title');
+  [{l:'Entrer au refuge',f:()=>enterRefuge(save.trognons.length?null:'Bienvenue ! Descends au donjon pour trouver des trognons.')}],'title');
 }
 function showPortal(){
   if(state!=='play')return;state='portal';
   showOv(`<h2>Fin de l'étage ${floorN}</h2><p>Rentre au refuge avec ton butin, ou descends plus bas : plus de butin, plus de danger.</p>${lootLine(run)}`,
   [{l:'Descendre à l\'étage '+(floorN+1),f:()=>{floorN++;startRun(true)}},
-   {l:'Rentrer au refuge',alt:true,f:()=>{bank();showHome('De retour au refuge !')}}]);
+   {l:'Rentrer au refuge',alt:true,f:()=>{bank();enterRefuge(backMsg())}}]);
   hero.y+=26;
 }
 function ko(){
   state='ko';SFX.ko();
   run.fibres=Math.floor(run.fibres/2);run.eclats=Math.floor(run.eclats/2);
   setTimeout(()=>showOv(`<h2>K.O. !</h2><p>Braisou te ramène au refuge. Tu perds la moitié du butin de la descente, mais tes œufs et tes trognons sont saufs.</p>${lootLine(run)}`,
-  [{l:'Rentrer',f:()=>{bank();showHome('Repose-toi bien…')}}]),800);
+  [{l:'Rentrer',f:()=>{bank();enterRefuge('Repose-toi bien… '+backMsg())}}]),800);
 }
+function backMsg(){const n=run.trognons.length;return `+${run.eclats} éclats, +${run.fibres} fibres`+(run.oeufs?`, +${run.oeufs} œuf`:'')+(n?`, ${n} trognon${n>1?'s':''} !`:'')}
 function showHome(t){
   state='home';
   const counts={};for(const k of save.trognons)counts[k]=(counts[k]||0)+1;
@@ -524,6 +528,7 @@ function render(){
   cx.setTransform(d*scale,0,0,d*scale,d*offX,d*offY);
   // fond au-dessus de la zone de jeu
   cx.fillStyle='#ecdcbf';cx.fillRect(-offX/scale,-offY/scale,W+2*offX/scale,CTRL_Y+offY/scale);
+  if(state==='refuge'){drawRefuge();renderPetPreview();return}
   if(cur){drawWorld();if(state!=='title')drawHud();drawBanner()}
   drawControls();
 }
@@ -531,5 +536,5 @@ function loop(now){
   const dt=Math.min(.033,(now-last)/1000);last=now;
   update(dt);render();requestAnimationFrame(loop);
 }
-window.__g={get hero(){return hero},get cur(){return cur},get rooms(){return rooms},get state(){return state},get run(){return run},input,startRun,damage,capture};
+window.__g={get save(){return save},get refu(){return refu},get cur(){return cur},get rooms(){return rooms},get state(){return state},get run(){return run},input,startRun,damage,capture};
 (document.fonts&&document.fonts.load?document.fonts.load('600 16px Fredoka'):Promise.resolve()).catch(()=>{}).then(()=>{showTitle();requestAnimationFrame(loop)});

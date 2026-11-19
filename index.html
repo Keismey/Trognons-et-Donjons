@@ -34,6 +34,19 @@
   .ic.eclat{background:#ffc93d;transform:rotate(45deg) scale(.85);border-color:#8a5a1a}
   .ic.oeuf{background:#fff6e6;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;width:11px;height:14px}
   .ic.trognon{background:#a77de0;border-radius:50% 50% 40% 40%;border-color:#3d2350}
+  .card.panel{max-height:84vh;overflow:auto}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;background:rgba(255,255,255,.55);border:1.5px solid #e2c99c;border-radius:14px;padding:9px 10px;margin:8px 0}
+  .card button.mini{width:auto;margin:0;padding:8px 12px;font-size:14px;border-radius:12px}
+  .card button.mini.wide{width:100%;margin-top:10px}
+  .card button:disabled{filter:grayscale(.8);opacity:.55}
+  .timer{font-size:20px;font-weight:700;color:#e2774a}.timer.big{font-size:34px;margin:6px 0}
+  .bar{height:12px;border-radius:8px;background:#ead7b8;border:1.5px solid #c9a676;overflow:hidden;margin:8px 0 2px}.bar i{display:block;height:100%;background:linear-gradient(#ffb36b,#e2774a)}
+  .picks{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:8px 0}
+  .card button.pick{width:auto;margin:0;padding:8px 10px;font-size:14px;background:#fff8ea;color:#4a3324;border-color:#c9a676;box-shadow:0 3px 0 #c9a676;text-shadow:none}
+  .card button.pick.on{background:linear-gradient(#9cc985,#7fae6a);color:#fff;border-color:#4f7f3e;box-shadow:0 3px 0 #4f7f3e}
+  .pick small{display:block;font-size:11px;font-weight:500;opacity:.8}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0}.tag{background:#fff8ea;border:1.5px solid #c9a676;border-radius:10px;padding:4px 8px;font-size:13px;font-weight:600}.tag.off{opacity:.45}
+  .petico{display:flex;justify-content:center;margin:-6px 0 -4px}.petico canvas{position:static;width:180px;height:150px}
 </style>
 </head>
 <body>
@@ -41,5 +54,6 @@
 <div id="ov"><div class="card" id="card"></div></div>
 <script src="js/art.js"></script>
 <script src="js/game.js"></script>
+<script src="js/refuge.js"></script>
 </body>
 </html>

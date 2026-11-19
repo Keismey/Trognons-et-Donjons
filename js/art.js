@@ -433,8 +433,9 @@ function drawEpineuxArt(x,y,o){
   const pl=2.6+bloom*3.4;
   for(let i=0;i<5;i++){G.save();G.translate(0,-21);G.rotate(i*TAU/5+o.t*.3);bp();el(0,-pl*.6,1.8+bloom*.8,pl*.62);fs('#f592b4','#7a2a4a',.7);G.restore()}
   dot(0,-21,1.5+bloom*.6,'#ffd24d');
-  eyePair(0,-11,3.7,1.7,2.2,o.look,o.mode==='dizzy'?'dizzy':'angry',o.t);
-  if(o.mode!=='dizzy'){bp();G.moveTo(-2.4,-6.2);G.quadraticCurveTo(0,-4.6,2.4,-6.2);st(ink,.9);
+  eyePair(0,-11,3.7,1.7,2.2,o.look,o.mode==='dizzy'?'dizzy':o.friend?'normal':'angry',o.t);
+  if(o.friend){cheeks(0,-7.5,6,1.5,.9,.5);bp();G.moveTo(-2,-6.2);G.quadraticCurveTo(0,-4.4,2,-6.2);st(ink,.9)}
+  else if(o.mode!=='dizzy'){bp();G.moveTo(-2.4,-6.2);G.quadraticCurveTo(0,-4.6,2.4,-6.2);st(ink,.9);
     for(const s of[-1,1]){bp();G.moveTo(s*1.6,-5.4);G.lineTo(s*1,-4.1);G.lineTo(s*.5,-5.2);G.closePath();fl('#ffffff')}}
   G.restore();G.restore();
 }
