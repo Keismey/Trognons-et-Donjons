@@ -252,17 +252,19 @@ function update(dt){
     const d=(input.mx||input.my)?norm(input.mx,input.my):{x:h.fx,y:h.fy};
     h.fx=d.x;h.fy=d.y;h.roll=.28;h.rollCd=.75;SFX.roll();burst(h.x,h.y+8,'#d8c3a0',8,55,.35);
   }
+  aimT=findTarget();
   if(input.pow&&buddy.cd<=0){
     buddy.cd=3.5;buddy.squash=1;SFX.fire();
-    shots.push({x:buddy.x,y:buddy.y,vx:h.fx*230,vy:h.fy*230,r:7,friend:true,dmg:2,life:1.4,t:0});
+    const d=aimT?norm(aimT.x-buddy.x,aimT.y-buddy.y):{x:h.fx,y:h.fy};
+    shots.push({x:buddy.x,y:buddy.y,vx:d.x*240,vy:d.y*240,r:7,friend:true,dmg:2,life:1.6,t:0,target:aimT});
     burst(buddy.x,buddy.y,'#ffb347',8,70,.35,{glow:true});
   }
   input.atk=input.roll=input.pow=false;
 
   let mvx=0,mvy=0;
-  if(h.roll>0){h.roll-=dt;mvx=h.fx*250;mvy=h.fy*250;h.rollA=(1-h.roll/.28)*Math.PI*2*(h.fx<0?-1:1);h.moving=false;if(Math.random()<.5)burst(h.x,h.y+9,'#d8c3a0',1,20,.3)}
+  if(h.roll>0){h.roll-=dt;mvx=h.fx*250;mvy=h.fy*250;(h.trail=h.trail||[]).push({x:h.x,y:h.y,p:1-h.roll/.28});if(h.trail.length>5)h.trail.shift();h.rollA=(1-h.roll/.28)*Math.PI*2*(h.fx<0?-1:1);h.moving=false;if(Math.random()<.5)burst(h.x,h.y+9,'#d8c3a0',1,20,.3)}
   else{
-    h.rollA=0;const sp=h.atk>0?55:118;mvx=input.mx*sp;mvy=input.my*sp;
+    h.rollA=0;h.trail=[];const sp=h.atk>0?55:118;mvx=input.mx*sp;mvy=input.my*sp;
     h.moving=!!(input.mx||input.my);
     if(h.moving){const d=norm(input.mx,input.my);if(h.atk<=0){h.fx=d.x;h.fy=d.y}h.walk+=dt*11*len(input.mx,input.my);if(Math.random()<dt*6)burst(h.x,h.y+9,'rgba(200,170,130,.8)',1,15,.35)}
   }
@@ -293,6 +295,7 @@ function update(dt){
   if(!cur.cleared&&cur.enemies.every(e=>e.dead||e.stun)){cur.cleared=true;onClear(cur,false)}
 
   for(const s of shots){
+    if(s.target&&!s.target.dead&&!s.target.stun){const d=norm(s.target.x-s.x,s.target.y-s.y);const k=Math.min(1,dt*7);s.vx+=(d.x*240-s.vx)*k;s.vy+=(d.y*240-s.vy)*k}
     s.x+=s.vx*dt;s.y+=s.vy*dt;s.life-=dt;s.t+=dt;
     if(s.friend&&Math.random()<.8)parts.push({x:s.x,y:s.y,vx:rnd(-15,15)-s.vx*.1,vy:rnd(-15,15)-s.vy*.1,life:.3,max:.3,col:pickR(['#ffd27a','#ff8a3a','#ffb347']),r:rnd(1.2,2.6),glow:true,grav:0});
     if(hits(s.x,s.y,3,false)){s.life=0;burst(s.x,s.y,s.friend?'#ffb347':'#9bd27f',7,70,.35,{glow:s.friend})}
@@ -322,6 +325,14 @@ function updParts(dt){
   for(const f of floats){f.t+=dt;f.y-=24*dt}floats=floats.filter(f=>f.t<1);
 }
 
+// cible du souffle : l'ennemi le plus proche, avec une préférence pour celui qu'on regarde
+let aimT=null;
+function findTarget(){
+  let best=null,bs=1e9;
+  for(const e of cur.enemies){if(e.dead||e.stun)continue;const dx=e.x-hero.x,dy=e.y-hero.y,d=len(dx,dy);if(d>270)continue;
+    const dot=(dx*hero.fx+dy*hero.fy)/(d||1),sc=d*(1.35-.45*dot);if(sc<bs){bs=sc;best=e}}
+  return best;
+}
 function damage(e,n,dx,dy){
   e.hp-=n;e.flash=.13;e.kx=dx*190;e.ky=dy*190;SFX.hit();shake=4;burst(e.x,e.y,SPECIES[e.t].col,8,90);
   if(e.hp<=0){
@@ -423,8 +434,9 @@ function drawWorld(){
   for(const l of cur.loot){const b=Math.sin(l.t*6)*1.6;
     L.push({y:l.y,f:()=>{if(l.kind==='fibre')drawFibreArt(l.x,l.y,b);else if(l.kind==='eclat')drawEclatArt(l.x,l.y,b,clock+l.x);else if(l.kind==='coeur')drawHeartArt(l.x,l.y,b);else drawEggArt(l.x,l.y+6,b,clock)}})}
   for(const e of cur.enemies)if(!e.dead)L.push({y:e.y,f:()=>drawEnemy(e)});
+  if(state==='play'&&aimT&&buddy&&buddy.cd<=0&&!aimT.dead)drawTargetMark(aimT.x,aimT.y+(aimT.t==='bourdon'?7:9),clock);
   if(hero)L.push({y:hero.y,f:drawHero});
-  if(buddy)L.push({y:buddy.y+12,f:()=>drawBraisouArt(buddy.x,buddy.y+Math.sin(clock*3)*2,clock,buddy.squash,{x:hero.fx,y:hero.fy},'normal')});
+  if(buddy)L.push({y:buddy.y+12,f:()=>drawBraisouArt(buddy.x,buddy.y+Math.sin(clock*3)*2,clock,buddy.squash,aimT&&!aimT.dead?norm(aimT.x-buddy.x,aimT.y-buddy.y):{x:hero.fx,y:hero.fy},'normal')});
   L.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
   drawLabels();
   for(const s of shots){if(s.friend)drawFireballArt(s.x,s.y,s.vx,s.vy,s.t);else{shadowE(s.x,s.y+8,3.5,1.3,.2);drawSeedArt(s.x,s.y,s.t)}}
@@ -447,6 +459,9 @@ function drawHero(){
   FLASH=false;
   const behind=h.atk>0&&h.fy<-.5;
   if(h.atk>0&&behind)drawSwordSwing(h.x,h.y-8,Math.atan2(h.fy,h.fx),1-h.atk/.24);
+  if(h.roll>0){
+    (h.trail||[]).forEach((t,i)=>{if(i%2)return;G.save();G.globalAlpha=.12+i*.05;drawHeroRollArt(t.x,t.y+9,t.p,h.fx,h.fy,true);G.restore()});
+    drawHeroRollArt(h.x,h.y+9,1-h.roll/.28,h.fx,h.fy,false);return}
   drawHeroArt(h.x,h.y+9,{fx:h.fx,fy:h.fy,walk:h.walk,moving:h.moving,t:clock,blink:h.blink,roll:h.roll,rollA:h.rollA});
   if(h.atk>0&&!behind)drawSwordSwing(h.x,h.y-8,Math.atan2(h.fy,h.fx),1-h.atk/.24);
 }

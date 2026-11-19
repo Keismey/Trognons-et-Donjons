@@ -89,11 +89,11 @@ function renderRoomCanvas(room,COLS,ROWS,T){
   for(let i=0;i<22;i++){const side=Math.floor(R()*4);let x,y;
     if(side===0){x=T+R()*(Wp-2*T);y=T+5}else if(side===1){x=T+R()*(Wp-2*T);y=Hp-T-2}else if(side===2){x=T+3;y=T+R()*(Hp-2*T)}else{x=Wp-T-3;y=T+R()*(Hp-2*T)}
     if(Math.abs(x-Wp/2)<20||Math.abs(y-Hp/2)<20)continue;grassTuft(x,y,R)}
-  // ---- ombre portée des murs
-  G.fillStyle=lg(0,T,0,T+20,[[0,'rgba(48,28,18,.5)'],[1,'rgba(48,28,18,0)']]);G.fillRect(T,T,Wp-2*T,20);
-  G.fillStyle=lg(T,0,T+12,0,[[0,'rgba(48,28,18,.38)'],[1,'rgba(48,28,18,0)']]);G.fillRect(T,T,12,Hp-2*T);
-  G.fillStyle=lg(Wp-T,0,Wp-T-12,0,[[0,'rgba(48,28,18,.38)'],[1,'rgba(48,28,18,0)']]);G.fillRect(Wp-T-12,T,12,Hp-2*T);
-  G.fillStyle=lg(0,Hp-T,0,Hp-T-8,[[0,'rgba(48,28,18,.3)'],[1,'rgba(48,28,18,0)']]);G.fillRect(T,Hp-T-8,Wp-2*T,8);
+  // ---- terre plus sombre et ombre douce au pied des haies
+  G.fillStyle=lg(26,0,48,0,[[0,'rgba(48,28,18,.42)'],[1,'rgba(48,28,18,0)']]);G.fillRect(26,0,22,Hp);
+  G.fillStyle=lg(Wp-26,0,Wp-42,0,[[0,'rgba(48,28,18,.28)'],[1,'rgba(48,28,18,0)']]);G.fillRect(Wp-42,0,16,Hp);
+  G.fillStyle=lg(0,Hp-24,0,Hp-36,[[0,'rgba(48,28,18,.25)'],[1,'rgba(48,28,18,0)']]);G.fillRect(0,Hp-36,Wp,12);
+  G.fillStyle=rg(Wp/2,Hp/2,Wp*.32,Wp*.62,[[0,'rgba(90,60,30,0)'],[1,'rgba(90,60,30,.18)']]);G.fillRect(0,0,Wp,Hp);
   // ---- obstacles
   for(let ty=0;ty<ROWS;ty++)for(let tx=0;tx<COLS;tx++)if(g[ty][tx]===2){
     const k=R(),x=tx*T+T/2,y=tx*0+ty*T+T/2+6;
@@ -153,44 +153,87 @@ function mushrooms(x,y,R){
 }
 
 function drawWalls(room,Wp,Hp,T,R,pick){
-  const D=room.doors,mid=Wp/2;
-  // talus de terre visible au nord (face éclairée vers la salle)
-  G.save();
-  bp();G.rect(0,16,Wp,T-16+1);G.fillStyle=lg(0,16,0,T,[[0,PAL.earthB],[1,PAL.earthA]]);G.fill();
-  for(let i=0;i<3;i++){bp();G.moveTo(0,21+i*3.5);for(let x=0;x<=Wp;x+=8)G.lineTo(x,21+i*3.5+Math.sin(x*.13+i)*1.2);st('rgba(50,28,16,.35)',.6)}
-  for(let i=0;i<18;i++){const sx=R()*Wp,sy=20+R()*11;bp();el(sx,sy,1.5+R()*1.4,1+R()*.8);G.fillStyle=pick(['#9b8b7a','#857565','#b0a08e']);G.fill()}
-  // racines qui pendent
-  for(let i=0;i<14;i++){const rx=8+R()*(Wp-16);if(D.n&&Math.abs(rx-mid)<22)continue;const l=8+R()*12,sw=(R()-.5)*8;
-    bp();G.moveTo(rx,18);G.bezierCurveTo(rx+sw*.3,18+l*.4,rx+sw,18+l*.7,rx+sw*.6,18+l);st(PAL.root,2.2);
-    bp();G.moveTo(rx-.5,19);G.bezierCurveTo(rx+sw*.3-.5,18+l*.4,rx+sw-.5,18+l*.7,rx+sw*.6-.3,18+l-1);st(PAL.rootHi,.7)}
+  const D=room.doors,mid=Wp/2,midY=Hp/2;
+  const L=29,Rr=Wp-29,TOP=17,B=Hp-27,FACE=33;   // bords intérieurs de la haie
+  const ph=[R()*9,R()*9,R()*9,R()*9];
+  const wav=(v,k)=>Math.sin(v*.11+ph[k])*1.6+Math.sin(v*.29+ph[k]*2)*1.1;
+  // contour intérieur ondulé, dans le sens horaire
+  const pts=[];
+  for(let x=L;x<Rr;x+=4)pts.push([x,TOP+wav(x,0),'n']);
+  for(let y=TOP;y<B;y+=4)pts.push([Rr-wav(y,1),y,'e']);
+  for(let x=Rr;x>L;x-=4)pts.push([x,B-wav(x,2),'s']);
+  for(let y=B;y>TOP;y-=4)pts.push([L+wav(y,3),y,'w']);
+  const inGap=(x,y)=>(D.n&&y<FACE+4&&Math.abs(x-mid)<16)||(D.s&&y>B-6&&Math.abs(x-mid)<16)||(D.w&&x<L+6&&Math.abs(y-midY)<16)||(D.e&&x>Rr-6&&Math.abs(y-midY)<16);
+
+  // ---- 1. talus de terre au nord, sous la haie
+  const faceBot=x=>FACE+Math.sin(x*.17+ph[0])*1.4+Math.sin(x*.41)*.8;
+  bp();G.moveTo(L-8,TOP-4);G.lineTo(Rr+8,TOP-4);for(let x=Rr+8;x>=L-8;x-=3)G.lineTo(x,faceBot(x));G.closePath();
+  G.fillStyle=lg(0,TOP-4,0,FACE+2,[[0,'#3e2516'],[.35,PAL.earthB],[1,PAL.earthA]]);G.fill();
+  for(let i=0;i<3;i++){bp();for(let x=L-6;x<=Rr+6;x+=5)G.lineTo(x,TOP+5+i*4.2+Math.sin(x*.13+i*2+ph[1])*1.1);st('rgba(40,22,12,.32)',.6)}
+  for(let i=0;i<22;i++){const sx=L+R()*(Rr-L),sy=TOP+5+R()*(FACE-TOP-8);if(D.n&&Math.abs(sx-mid)<18)continue;bp();el(sx,sy,1.4+R()*1.4,1+R()*.7);G.fillStyle=pick(['#9b8b7a','#857565','#b0a08e']);G.fill();dot(sx-.4,sy-.4,.4,'rgba(255,255,255,.35)')}
+  // lisière terre / sol : liseré sombre, miettes, puis ombre douce sur le sol
+  bp();for(let x=L-8;x<=Rr+8;x+=3)G.lineTo(x,faceBot(x));st('rgba(46,26,14,.55)',1.3);
+  bp();for(let x=L-8;x<=Rr+8;x+=3)G.lineTo(x,faceBot(x)-1.3);st('rgba(196,150,100,.35)',.7);
+  for(let i=0;i<26;i++){const x=L+R()*(Rr-L);if(D.n&&Math.abs(x-mid)<18)continue;const y=faceBot(x)+1+R()*3;bp();el(x,y,.8+R()*1.2,.6+R()*.6);G.fillStyle=pick(['#7a5236','#946746','#a99a8a']);G.fill()}
+  G.fillStyle=lg(0,FACE,0,FACE+12,[[0,'rgba(46,26,14,.32)'],[1,'rgba(46,26,14,0)']]);G.fillRect(L,FACE,Rr-L,12);
+  // racines qui pendent du talus
+  for(let i=0;i<16;i++){const rx=L+4+R()*(Rr-L-8);if(D.n&&Math.abs(rx-mid)<22)continue;const l=7+R()*13,sw=(R()-.5)*8,y0=TOP+1;
+    bp();G.moveTo(rx,y0);G.bezierCurveTo(rx+sw*.3,y0+l*.4,rx+sw,y0+l*.7,rx+sw*.6,y0+l);st('#4a2c1a',2.6);
+    bp();G.moveTo(rx,y0);G.bezierCurveTo(rx+sw*.3,y0+l*.4,rx+sw,y0+l*.7,rx+sw*.6,y0+l);st(PAL.root,1.7);
+    bp();G.moveTo(rx-.4,y0+1);G.bezierCurveTo(rx+sw*.3-.4,y0+l*.4,rx+sw-.4,y0+l*.7,rx+sw*.6-.3,y0+l-1);st(PAL.rootHi,.5);
+    if(R()<.5){bp();G.moveTo(rx+sw*.5,y0+l*.6);G.quadraticCurveTo(rx+sw*.5+3,y0+l*.7,rx+sw*.5+4,y0+l*.9);st(PAL.root,.6)}}
+  // passage nord : arche dans le talus
+  if(D.n){bp();G.moveTo(mid-14,FACE+2);G.lineTo(mid-14,TOP-2);G.quadraticCurveTo(mid,TOP-16,mid+14,TOP-2);G.lineTo(mid+14,FACE+2);G.closePath();G.fillStyle=lg(0,0,0,FACE,[[0,'#0e0806'],[1,'#4a3020']]);G.fill();
+    bp();G.moveTo(mid-15.5,FACE+1);G.lineTo(mid-15.5,TOP-2);G.quadraticCurveTo(mid,TOP-17.5,mid+15.5,TOP-2);G.lineTo(mid+15.5,FACE+1);st('#2e1a10',4);st('#8a5a3a',2.2);st('#b98a5a',.6);
+    for(const s of[-1,1]){bp();el(mid+s*15.5,FACE,3,1.6);fs('#6e4630','#2e1a10',.8)}}
+
+  // ---- 2. masse de la haie : un seul bloc continu (plus de trous entre les touffes)
+  bp();G.rect(-4,-4,Wp+8,Hp+8);pts.forEach((p,i)=>i?G.lineTo(p[0],p[1]):G.moveTo(p[0],p[1]));G.closePath();
+  G.save();G.clip('evenodd');
+  G.fillStyle=PAL.leafDark;G.fillRect(-4,-4,Wp+8,Hp+8);
+  // remplissage de touffes dans l'épaisseur
+  const fill=[];
+  for(let y=-2;y<Hp+4;y+=6)for(let x=-2;x<Wp+4;x+=6){const inside=x<L+2||x>Rr-2||y<TOP+2||y>B-2;if(inside)fill.push({x:x+(R()-.5)*4,y:y+(R()-.5)*4,r:4.5+R()*2.6})}
+  fill.sort((a,b)=>a.y-b.y);
+  for(const c of fill)leafCluster(c.x,c.y,c.r,R,pick,false);
   G.restore();
-  // ouvertures des portes (le passage lui-même ; la grille est dessinée à part)
-  if(D.n){bp();G.moveTo(mid-14,T+1);G.lineTo(mid-14,12);G.quadraticCurveTo(mid,-2,mid+14,12);G.lineTo(mid+14,T+1);G.closePath();G.fillStyle=lg(0,0,0,T,[[0,'#120b08'],[1,'#4a3020']]);G.fill();
-    bp();G.moveTo(mid-15,T);G.lineTo(mid-15,12);G.quadraticCurveTo(mid,-3,mid+15,12);G.lineTo(mid+15,T);st('#3a2418',3.4);st('#8a5a3a',1.6)}
-  if(D.s){G.fillStyle=lg(0,Hp-T,0,Hp,[[0,PAL.soilB],[1,'#3a2418']]);G.fillRect(mid-15,Hp-T,30,T)}
-  if(D.w){G.fillStyle=lg(T,0,0,0,[[0,PAL.soilB],[1,'#3a2418']]);G.fillRect(0,Hp/2-15,T,30)}
-  if(D.e){G.fillStyle=lg(Wp-T,0,Wp,0,[[0,PAL.soilB],[1,'#3a2418']]);G.fillRect(Wp-T,Hp/2-15,T,30)}
-  // haies feuillues
-  const cl=[];
-  const add=(x,y,r)=>{
-    if(D.n&&y<T&&Math.abs(x-mid)<17&&y>8)return;
-    if(D.s&&y>Hp-T&&Math.abs(x-mid)<19)return;
-    if(D.w&&x<T&&Math.abs(y-Hp/2)<19)return;
-    if(D.e&&x>Wp-T&&Math.abs(y-Hp/2)<19)return;
-    cl.push({x,y,r});
-  };
-  for(let x=-4;x<=Wp+4;x+=6.5){add(x+(R()-.5)*3,3+R()*3,6+R()*3);add(x+(R()-.5)*3,11+R()*3,5.5+R()*2.5)}
-  for(let y=T-4;y<=Hp+4;y+=6.5){for(const bx of[4,13,22]){add(bx+(R()-.5)*3,y+(R()-.5)*3,5+R()*3);add(Wp-bx+(R()-.5)*3,y+(R()-.5)*3,5+R()*3)}}
-  for(let x=-4;x<=Wp+4;x+=6.5){for(const by of[Hp-25,Hp-15,Hp-5])add(x+(R()-.5)*3,by+(R()-.5)*3,5.5+R()*3)}
-  cl.sort((a,b)=>a.y-b.y);
-  for(const c of cl){bp();ci(c.x,c.y+1,c.r+1.4);G.fillStyle=PAL.leafDark;G.fill()}
-  for(const c of cl){
-    bp();ci(c.x,c.y,c.r);G.fillStyle=pick(PAL.leafMid);G.fill();
-    bp();el(c.x-c.r*.22,c.y-c.r*.3,c.r*.62,c.r*.5);G.fillStyle=PAL.leafLight;G.fill();
-    dot(c.x-c.r*.42,c.y-c.r*.5,c.r*.2,PAL.leafHi);
-    const k=R();if(k<.06){for(let i=0;i<5;i++){const a=i*TAU/5;dot(c.x+Math.cos(a)*1.4,c.y+Math.sin(a)*1.4,1,'#f7b6c6')}dot(c.x,c.y,.7,'#f0c43a')}
-    else if(k<.1){dot(c.x+1,c.y,1.3,'#d8423a');dot(c.x-1.4,c.y+1,1.1,'#d8423a');dot(c.x+.6,c.y-.4,.4,'#fff')}
-  }
+
+  // ---- 3. passages est, ouest et sud : sentier qui s'enfonce dans la haie
+  const path=(x,y,w,h,horiz,toOut)=>{G.fillStyle=horiz?lg(toOut?x+w:x,0,toOut?x:x+w,0,[[0,PAL.soilB],[.6,'#8a6440'],[1,'#2a1810']]):lg(0,y,0,y+h,[[0,PAL.soilB],[.6,'#8a6440'],[1,'#2a1810']]);G.fillRect(x,y,w,h)};
+  if(D.w)path(-4,midY-15,L+6,30,true,true);
+  if(D.e)path(Rr-2,midY-15,Wp-Rr+6,30,true,false);
+  if(D.s)path(mid-15,B-2,30,Hp-B+6,false,false);
+  if(D.n){bp();G.rect(mid-13,-4,26,TOP+3);G.fillStyle='#120b08';G.fill()}
+
+  // ---- 4. bordure : grosses touffes contourées le long du sol, puis embouts autour des passages
+  const rim=[];
+  for(let i=0;i<pts.length;i+=1){const [x,y,side]=pts[i];if(i%2&&side!=='n')continue;
+    let cx_=x,cy=y;if(side==='n')cy-=3.5;else if(side==='s')cy+=3.5;else if(side==='w')cx_-=3.5;else cx_+=3.5;
+    if(inGap(cx_,cy))continue;rim.push({x:cx_,y:cy,r:5.2+R()*2.4})}
+  const cap=(x,y)=>rim.push({x,y,r:6+R()*1.5});
+  if(D.w)for(let x=2;x<L;x+=6){cap(x,midY-18);cap(x,midY+18)}
+  if(D.e)for(let x=Rr+2;x<Wp;x+=6){cap(x,midY-18);cap(x,midY+18)}
+  if(D.s)for(let y=B+2;y<Hp;y+=6){cap(mid-18,y);cap(mid+18,y)}
+  if(D.n)for(let y=0;y<TOP;y+=6){cap(mid-17,y);cap(mid+17,y)}
+  rim.sort((a,b)=>a.y-b.y);
+  for(const c of rim){bp();ci(c.x+.3,c.y+1.2,c.r+1.3);G.fillStyle='#16301f';G.fill()}
+  for(const c of rim)leafCluster(c.x,c.y,c.r,R,pick,true);
+
+  // ---- 5. lisière haie / sol : herbes qui débordent sur la terre
+  for(const [x,y,side] of pts){if(side==='n'||R()<.45||inGap(x,y))continue;
+    const ox=side==='w'?2.5:side==='e'?-2.5:0,oy=side==='s'?-2:2;
+    const n=3+Math.floor(R()*3),dir=side==='w'?.6:side==='e'?-.6:0;
+    for(let k=0;k<n;k++){const a=-Math.PI/2+dir+(k/(n-1)-.5)*1.2,l=3+R()*3.5,bx=x+ox+(k-n/2)*.8,by=y+oy+(side==='s'?0:4);
+      bp();G.moveTo(bx,by);G.quadraticCurveTo(bx+Math.cos(a)*l*.4,by-l*.5,bx+Math.cos(a)*l,by+Math.sin(a)*l);st(pick(['#4f8a3e','#6fa34a','#86b85a']),1)}}
+}
+function leafCluster(x,y,r,R,pick,rim){
+  bp();ci(x,y,r);G.fillStyle=pick(PAL.leafMid);G.fill();
+  if(rim){bp();G.arc(x,y,r,.15*Math.PI,.85*Math.PI);st('rgba(20,40,26,.55)',.9)}
+  bp();el(x-r*.22,y-r*.3,r*.62,r*.5);G.fillStyle=PAL.leafLight;G.fill();
+  dot(x-r*.42,y-r*.5,r*.2,PAL.leafHi);
+  if(rim&&R()<.35){bp();el(x+r*.4,y-r*.2,r*.32,r*.15,.6);G.fillStyle='#6fae5a';G.fill()}
+  const k=R();if(k<.05){for(let i=0;i<5;i++){const a=i*TAU/5;dot(x+Math.cos(a)*1.4,y+Math.sin(a)*1.4,1,'#f7b6c6')}dot(x,y,.7,'#f0c43a')}
+  else if(k<.085){dot(x+1,y,1.3,'#d8423a');dot(x-1.4,y+1,1.1,'#d8423a');dot(x+.6,y-.4,.4,'#fff')}
 }
 /* grille d'une porte, dessinée à chaque image (elle s'escamote quand la salle est vidée) */
 function drawGate(dir,open,Wp,Hp,T){
@@ -544,4 +587,43 @@ function drawJoystickArt(bx,by,kx,ky,active){
   bp();ci(kx,ky+3,21);G.fillStyle='#8a6a48';G.fill();
   bp();ci(kx,ky,21);G.fillStyle=rg(kx-6,ky-7,2,24,[[0,'#f6dfb6'],[1,'#c9a26e']]);G.fill();st('#8a6a48',1.4);
   bp();ci(kx,ky,13);st('rgba(138,106,72,.4)',1);
+}
+
+/* =====================================================================
+   ROULADE : le héros se roule en boule dans sa cape-feuille
+   p = avancement 0..1, (dx,dy) = direction
+   ===================================================================== */
+function drawHeroRollArt(x,y,p,dx,dy,ghost){
+  const sgn=dx<-.1?-1:1,a=p*TAU*1.25*sgn;
+  let sx=1,sy=1,lift=Math.sin(p*Math.PI)*3;
+  if(p<.14){const k=p/.14;sx=1+.25*(1-k);sy=1-.22*(1-k)}
+  else if(p>.86){const k=(p-.86)/.14;sx=1+.2*k;sy=1-.18*k}
+  if(!ghost)shadowE(x,y,8*(1-lift*.04),3*(1-lift*.04));
+  G.save();G.translate(x,y-9.5-lift);G.scale(sx,sy);
+  if(!ghost){ // traits de vitesse derrière
+    const n=norm2(dx,dy);G.save();G.globalAlpha=.55*Math.sin(p*Math.PI);
+    for(const o of[-5,0,5]){const px=-n.x*13+(-n.y)*o,py=-n.y*13+n.x*o;bp();G.moveTo(px,py);G.lineTo(px-n.x*(7+Math.abs(o)*.3),py-n.y*(7+Math.abs(o)*.3));st('#fff8ec',1.6)}
+    G.restore()}
+  G.rotate(a);
+  bp();ci(0,0,9.6);fs(lg(0,-9.6,0,9.6,[[0,'#97d775'],[1,'#4c8f43']]),ghost?null:OUT,1.1);
+  if(ghost){G.restore();return}
+  // nervure de la cape et pan de tunique
+  bp();G.moveTo(0,-9.4);G.quadraticCurveTo(3.4,0,0,9.4);st('rgba(40,90,40,.5)',.9);
+  bp();G.arc(0,0,9.6,.35,1.25);G.arc(0,0,5.6,1.25,.35,true);G.closePath();fl('#f3ddb2');st(OUT,.8);
+  // visage niché, yeux plissés
+  bp();ci(-4.4,3.2,3.4);fs('#ffd9b5',OUT,.8);
+  bp();G.moveTo(-6,3);G.quadraticCurveTo(-5.4,2,-4.8,3);st('#2b1d1a',.7);bp();G.moveTo(-3.9,3.4);G.quadraticCurveTo(-3.3,2.4,-2.7,3.4);st('#2b1d1a',.7);
+  // bottes
+  bp();el(5.6,-5.2,2.4,1.8,.8);fs('#7a4a30',OUT,.8);bp();el(7.2,-1.6,2.3,1.7,1.2);fs('#7a4a30',OUT,.8);
+  // la pousse dépasse
+  bp();G.moveTo(-2,-9.2);G.quadraticCurveTo(-3.6,-11.6,-5.6,-12);st(OUT,1.5);st('#5a9e4c',.7);
+  bp();el(-7.4,-12.1,2.4,1.3,.3);fs('#97d775',OUT,.8);
+  bp();el(-3.4,-5.2,2.6,1.4,-.7);G.fillStyle='rgba(255,255,255,.3)';G.fill();
+  G.restore();
+}
+function norm2(x,y){const l=Math.hypot(x,y)||1;return{x:x/l,y:y/l}}
+function drawTargetMark(x,y,t){
+  G.save();G.translate(x,y);
+  for(let i=0;i<4;i++){const a=t*2+i*Math.PI/2;bp();G.arc(0,0,13,a,a+.9);st('#fff2c2',3.2);bp();G.arc(0,0,13,a,a+.9);st('#ff8a3a',1.6)}
+  G.restore();
 }
