@@ -24,7 +24,7 @@ function mmss(ms){const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)
 
 /* ---------- état visuel ---------- */
 const refu={bg:null,pets:[],smoke:[],toast:null,sel:new Set(),panel:null,timer:null,hero:{x:146,y:252},spark:0};
-const SPOTS={couveuse:{x:78,y:318,r:42},board:{x:284,y:312,r:42},hut:{x:180,y:178,r:58},door:{x:180,y:584,r:42}};
+const SPOTS={couveuse:{x:78,y:318,r:42},board:{x:284,y:312,r:42},hut:{x:180,y:150,r:62},door:{x:180,y:584,r:42}};
 const PEN={x0:46,x1:314,y0:420,y1:528};
 
 function enterRefuge(msgTxt){
@@ -46,12 +46,12 @@ function updRefuge(dt){
     p.idle=(p.idle||0)+dt;
     if(p.sleep){p.sleep-=dt;p.moving=false;if(p.sleep<=0){p.sleep=0;p.idle=0;p.wait=rnd(.5,1.5)}continue}
     if(p.wait>0){p.wait-=dt;p.moving=false;if(p.wait<=0&&p.idle>14&&Math.random()<.35){p.sleep=rnd(6,12)}continue}
-    if(!p.tx){p.tx=rnd(PEN.x0+16,PEN.x1-16);p.ty=rnd(PEN.y0+14,PEN.y1-6)}
+    if(!p.tx){const pd=pondSpot();for(let k=0;k<8;k++){p.tx=rnd(PEN.x0+16,PEN.x1-16);p.ty=rnd(PEN.y0+14,PEN.y1-6);if(((p.tx-pd.x)/(pd.rx+16))**2+((p.ty-pd.y)/(pd.ry+14))**2>1)break}}
     const dx=p.tx-p.x,dy=p.ty-p.y,d=Math.hypot(dx,dy),sp=14+stageOf(p.ref)*4;
     if(d<2){p.tx=0;p.wait=rnd(1,3.5);p.moving=false}else{p.x+=dx/d*sp*dt;p.y+=dy/d*sp*dt;p.face=dx<0?-1:1;p.moving=true}
   }
   updRefugeFx(dt);
-  if(Math.random()<dt*5)refu.smoke.push({x:222+rnd(-2,2),y:98,r:rnd(3,5),vy:rnd(-12,-8),vx:rnd(2,6),life:2.4,max:2.4});
+  if(Math.random()<dt*5){const sm=hutLayout().smoke;refu.smoke.push({x:sm[0]+rnd(-2,2),y:sm[1],r:rnd(3,5),vy:rnd(-12,-8),vx:rnd(2,6),life:2.4,max:2.4})}
   for(const s of refu.smoke){s.x+=s.vx*dt;s.y+=s.vy*dt;s.r+=dt*3;s.life-=dt}refu.smoke=refu.smoke.filter(s=>s.life>0);
   if(refu.toast){refu.toast.d-=dt;if(refu.toast.d<=0)refu.toast=null}
   refu.spark-=dt;if(refu.spark<0&&buddy){refu.spark=rnd(.1,.25);parts.push({x:214+rnd(-4,4),y:236,vx:rnd(-8,8),vy:rnd(-30,-15),life:.6,max:.6,col:pickR(['#ffd27a','#ff9a4a','#fff1b0']),r:rnd(.8,1.6),glow:true,grav:0})}
@@ -141,6 +141,7 @@ function tag(x,y,txt,badge){
 }
 function drawRefuge(){
   G=cx;const now=Date.now();
+  if(!refu.bg)refu.bg=renderRefugeBg();
   G.drawImage(refu.bg,0,0,W,H);
   // œufs dans la couveuse
   save.couveuse.forEach((s,i)=>{if(!s)return;const ready=s.until<=now,x=SPOTS.couveuse.x-9+i*18,y=SPOTS.couveuse.y-8;
@@ -151,8 +152,8 @@ function drawRefuge(){
   // lanterne de la couveuse et fenêtres de la cabane
   const fl=.05*Math.sin(clock*7)+.03*Math.sin(clock*11.3);
   glow(SPOTS.couveuse.x,SPOTS.couveuse.y-36,22,'255,200,110',.38+fl);
-  for(const s of[-1,1])glow(180+s*33,182,20,'255,200,110',.22);
-  glow(205,174,16,'255,200,110',.32+fl);
+  const HL=hutLayout();for(const w of HL.win)glow(w[0],w[1],20,'255,200,110',.22);
+  glow(HL.lamp[0],HL.lamp[1],16,'255,200,110',.32+fl);
   for(const s of[-1,1])glow(SPOTS.door.x+s*76,SPOTS.door.y-15,18,'255,200,110',.34+fl);
   for(const m of[[136,580],[222,582]])glow(m[0],m[1],10,'140,210,255',.22+.1*Math.sin(clock*2+m[0]));
   // fumée

@@ -290,6 +290,16 @@ function dungeonGate(x,y,R,pick){
   G.restore();
 }
 
+/* ---------- images peintes (Gemini) ---------- */
+const RIMG={};
+for(const [k,f] of [['fond','fond.jpg'],['cabane','cabane.png']]){const i=new Image();i.onload=()=>{if(typeof refu!=='undefined')refu.bg=null};i.src='img/refuge/'+f;RIMG[k]=i}
+function rimgOk(k){const i=RIMG[k];return!!(i&&i.complete&&i.naturalWidth)}
+const HUT_IMG={x:104,y:76,w:152,h:130};
+// points lumineux et cheminée selon la cabane affichée
+function hutLayout(){return rimgOk('cabane')?{win:[[144,168],[210,168]],lamp:[192,163],smoke:[207,95]}:{win:[[147,182],[213,182]],lamp:[205,174],smoke:[222,98]}}
+// mare : dessinée au code ou peinte dans le fond
+function pondSpot(){return rimgOk('fond')?{x:274,y:466,rx:36,ry:18}:{x:282,y:500,rx:28,ry:12}}
+
 /* =====================================================================
    PRÉ-RENDU DU DÉCOR
    ===================================================================== */
@@ -297,6 +307,17 @@ function renderRefugeBg(){
   const c=document.createElement('canvas');c.width=W*RES;c.height=H*RES;
   const prev=G;G=c.getContext('2d');G.scale(RES,RES);
   const R=mulberry(4242),pick=a=>a[Math.floor(R()*a.length)];
+  if(rimgOk('fond')){
+    // décor peint (Gemini) + éléments encore dessinés au code
+    G.drawImage(RIMG.fond,0,0,W,H);
+    penFence(R);
+    nestStation(SPOTS.couveuse.x,SPOTS.couveuse.y,R);
+    expeBoard(SPOTS.board.x,SPOTS.board.y,R);
+    dungeonGate(SPOTS.door.x,SPOTS.door.y,R,pick);
+    if(rimgOk('cabane')){const L=HUT_IMG;shadowE(L.x+L.w/2,L.y+L.h-4,L.w*.46,8,.25);G.drawImage(RIMG.cabane,L.x,L.y,L.w,L.h)}else drawHut(180,178);
+    G.fillStyle=rg(W/2,H/2,W*.5,H*.66,[[0,'rgba(30,40,15,0)'],[1,'rgba(30,40,15,.22)']]);G.fillRect(0,0,W,H);
+    G=prev;return c;
+  }
   refugeGround(R,pick);
   trail([180,224,172,330,190,450,180,566],26,R,pick,.07);
   trail([166,262,124,258,98,284,84,304],17,R,pick,.16);
@@ -342,7 +363,7 @@ function updRefugeFx(dt){
 }
 function drawRefugeFx(){
   // reflets sur la mare
-  G.save();G.translate(282,500);bp();el(0,0,28,12);G.clip();
+  const pd=pondSpot();G.save();G.translate(pd.x,pd.y);bp();el(0,0,pd.rx,pd.ry);G.clip();
   for(let k=0;k<4;k++){const ph=clock*.8+k*1.6,px=Math.sin(ph)*16,py=Math.cos(ph*.7+k)*5;bp();el(px,py,6+k,1.2);G.fillStyle=`rgba(255,255,255,${.25+.15*Math.sin(clock*2+k)})`;G.fill()}
   G.restore();
   // feuilles qui tombent
@@ -351,7 +372,8 @@ function drawRefugeFx(){
   for(const f of fx.flies){const flap=Math.abs(Math.sin(f.ph*16));G.save();G.translate(f.x,f.y);
     for(const s of[-1,1]){G.save();G.scale(s*(.3+.7*flap),1);bp();el(2.6,-1.4,2.6,2);fs(f.c,'rgba(60,40,30,.7)',.5);bp();el(2,1.6,1.8,1.4);fs(f.c,'rgba(60,40,30,.7)',.5);G.restore()}
     bp();G.moveTo(0,-2.4);G.lineTo(0,2.4);st('#3a2622',1);G.restore()}
-  // rayons de soleil
+  // rayons de soleil (déjà peints dans le fond Gemini)
+  if(rimgOk('fond'))return;
   G.save();G.globalCompositeOperation='lighter';
   for(let i=0;i<3;i++){const x0=30+i*110,a=.05+.02*Math.sin(clock*.6+i*2);bp();G.moveTo(x0,60);G.lineTo(x0+26,60);G.lineTo(x0+150,H);G.lineTo(x0+110,H);G.closePath();G.fillStyle=lg(0,60,0,H,[[0,`rgba(255,236,170,${a})`],[1,'rgba(255,236,170,0)']]);G.fill()}
   G.restore();
